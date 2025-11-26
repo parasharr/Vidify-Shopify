@@ -25,7 +25,7 @@ export default function Home() {
         </button>
       </div>
 
-      <ConnectModal open={open} onClose={() => setOpen(false)} />
+      <ConnectModal open={open} onCloseAction={() => setOpen(false)} />
     </div>
   );
 }

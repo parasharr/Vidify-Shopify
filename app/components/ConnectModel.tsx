@@ -4,10 +4,10 @@ import { useState } from "react";
 
 export default function ConnectModal({
   open,
-  onClose,
+  onCloseAction,
 }: {
   open: boolean;
-  onClose: () => void;
+  onCloseAction: () => void;
 }) {
   const [shop, setShop] = useState("");
   const [error, setError] = useState("");
@@ -18,26 +18,32 @@ export default function ConnectModal({
       return;
     }
 
-    // Normalize input: allow both "mystore" and "mystore.myshopify.com"
-    let formattedShop = shop
-      .trim()
-      .toLowerCase()
-      .replace(/^https?:\/\//, "") // remove http(s)
-      .replace(/\/$/, ""); // remove trailing slash
+    let input = shop.trim().toLowerCase();
 
-    if (!formattedShop.includes(".myshopify.com")) {
-      formattedShop += ".myshopify.com";
+    // 1️⃣ Strip full admin URL
+    // Example: admin.shopify.com/store/kamakart-toys/whatever
+    const match = input.match(/store\/([a-z0-9-]+)/i);
+    if (match && match[1]) {
+      input = match[1]; // → "kamakart-toys"
     }
 
-    // Basic validation
-    const isValid = /^[a-z0-9-]+\.myshopify\.com$/.test(formattedShop);
-    if (!isValid) {
-      setError("Invalid Shopify store domain. Example: mystore.myshopify.com");
+    // 2️⃣ Remove https:// or http://
+    input = input.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+
+    // 3️⃣ Remove .myshopify.com if typed
+    input = input.replace(".myshopify.com", "");
+
+    // 4️⃣ Final shop domain
+    const formattedShop = `${input}.myshopify.com`;
+
+    // 5️⃣ Validate (only letters numbers and hyphens)
+    if (!/^[a-z0-9-]+\.myshopify\.com$/.test(formattedShop)) {
+      setError("Invalid Shopify domain");
       return;
     }
 
-    // Bypass OAuth for testing - redirect directly to dashboard
-    window.location.href = `/dashboard?shop=${formattedShop}`;
+    // 6️⃣ Redirect to Shopify OAuth
+    window.location.href = `/api/auth?shop=${formattedShop}`;
   };
 
   if (!open) return null;
@@ -46,7 +52,7 @@ export default function ConnectModal({
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative">
         <button
-          onClick={onClose}
+          onClick={onCloseAction}
           className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
         >
           ✕
